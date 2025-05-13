@@ -53,7 +53,6 @@ You will develop a comprehensive Retirement Savings Calculator API that allows u
    - PostgreSQL Driver
    - Spring Boot DevTools
    - Lombok (required)
-   
    - Spring Validation
    - Spring Boot Test
    - JaCoCo for test coverage
