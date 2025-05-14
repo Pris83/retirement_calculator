@@ -34,12 +34,9 @@ import jakarta.validation.constraints.NotNull;
  * @author Priscilla Masunyane
  */
 @Entity
-@Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Getter
-@Setter
 public class Retirement {
 
     @Id

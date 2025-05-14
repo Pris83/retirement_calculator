@@ -12,13 +12,13 @@ spring:
     database: postgresql  # Explicitly specify the database type
     database-platform: org.hibernate.dialect.PostgreSQLDialect  # Explicitly set the dialect
     hibernate:
-      ddl-auto: update # Or 'create' or 'create-drop' for development. 'update' is generally safe for development to add new columns. Be cautious in production!
-    show-sql: true # Good for development to see generated SQL
+      ddl-auto: update
+    show-sql: true
     properties:
       hibernate:
-        format_sql: true # Nicely format the SQL output
-  # Other dev-specific configurations can go here
-  # e.g., logging levels, specific feature flags, etc.
+        default_schema: retirement_staging
+      database-platform: org.hibernate.dialect.PostgreSQLDialect
+      show-sql: true
 
   redis:
     image: redis:latest

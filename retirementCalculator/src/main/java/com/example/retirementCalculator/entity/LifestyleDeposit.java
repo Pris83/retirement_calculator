@@ -6,6 +6,8 @@ import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.math.BigDecimal;
+
 /**
  * Entity representing a lifestyle-based monthly deposit configuration used
  * in retirement planning calculations.
@@ -30,17 +32,18 @@ import lombok.Setter;
 @Entity
 @Getter
 @Setter
+@Table(name = "lifestyle_deposits", schema = "retirement_staging")
 public class LifestyleDeposit {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotNull
-    @Column(unique = true)
+    @Column(name = "lifestyleType")
     private String lifestyleType;
 
-    private Double monthlyDeposit;
+    @Column(name = "monthlyDeposit")
+    private BigDecimal monthlyDeposit;
 
     public Long getId() {
         return id;
@@ -50,11 +53,11 @@ public class LifestyleDeposit {
         this.id = id;
     }
 
-    public Double getMonthlyDeposit() {
+    public BigDecimal getMonthlyDeposit() {
         return monthlyDeposit;
     }
 
-    public void setMonthlyDeposit(Double monthlyDeposit) {
+    public void setMonthlyDeposit(BigDecimal monthlyDeposit) {
         this.monthlyDeposit = monthlyDeposit;
     }
 

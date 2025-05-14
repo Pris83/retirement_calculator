@@ -7,6 +7,9 @@ import org.mockito.Mockito;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -47,7 +50,7 @@ public class RetirementServiceTest {
         input.setInterestRate(5.0);
         input.setLifestyleType("fancy");
 
-        when(valueOps.get("fancy")).thenReturn("3000");
+        when(valueOps.get("fancy")).thenReturn("3000.0");
 
         // When
         RetirementResult result = service.calculatePlan(input);
@@ -55,8 +58,8 @@ public class RetirementServiceTest {
         // Then
         assertThat(result).isNotNull();
         assertThat(result.getCurrentAge()).isEqualTo(30);
-        assertThat(result.getMonthlyDeposit()).isEqualTo(3000.0);
-        assertThat(result.getFutureValue()).isGreaterThan(0);
+        assertThat(result.getMonthlyDeposit()).isEqualTo(BigDecimal.valueOf(3000.0));
+        assertThat(result.getFutureValue()).isGreaterThan(BigDecimal.valueOf(0.0));
     }
 
     @Test
@@ -85,12 +88,13 @@ public class RetirementServiceTest {
         input.setInterestRate(0.0);
         input.setLifestyleType("simple");
 
-        when(valueOps.get("simple")).thenReturn("1000");
+        when(valueOps.get("simple")).thenReturn("1000.0");
 
         // When
         RetirementResult result = service.calculatePlan(input);
 
         // Then
-        assertThat(result.getFutureValue()).isEqualTo(1000.0 * 12 * 10);
+        assertThat(result.getFutureValue().setScale(1, RoundingMode.HALF_UP))
+                .isEqualTo(BigDecimal.valueOf(1000.0 * 12 * 10).setScale(1, RoundingMode.HALF_UP));
     }
 }

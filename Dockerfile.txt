@@ -1,0 +1,14 @@
+    # Use the official PostgreSQL image from Docker Hub
+    FROM postgres:latest
+
+    # Set environment variables for database name, user, and password
+    ENV POSTGRES_DB=mydatabase
+    ENV POSTGRES_USER=postgresuser
+    ENV POSTGRES_PASSWORD=postgrespassword
+
+    # Expose the default PostgreSQL port
+    EXPOSE 5432
+
+
+
+

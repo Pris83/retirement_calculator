@@ -1,0 +1,16 @@
+meta {
+  name: set cache
+  type: http
+  seq: 4
+}
+
+post {
+  url: http://localhost:8080/cache/set?key=simple&value=1000
+  body: none
+  auth: none
+}
+
+params:query {
+  key: simple
+  value: 1000
+}

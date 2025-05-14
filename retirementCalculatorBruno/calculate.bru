@@ -4,8 +4,18 @@ meta {
   seq: 2
 }
 
-get {
-  url: http://localhost:8080/calculate
-  body: none
+post {
+  url: http://localhost:8080/retirement-plans/calculate
+  body: json
   auth: none
+}
+
+body:json {
+  {
+    "currentAge": 21,
+    "retirementAge": 65,
+    "interestRate": 12,
+    "lifestyleType": "simple"
+  }
+  
 }

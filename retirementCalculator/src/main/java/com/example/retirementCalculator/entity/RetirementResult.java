@@ -1,10 +1,10 @@
 package com.example.retirementCalculator.entity;
 
 import jakarta.persistence.Entity;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.text.DecimalFormat;
 
 /**
@@ -32,12 +32,15 @@ import java.text.DecimalFormat;
 @Data
 @NoArgsConstructor
 public class RetirementResult {
+
     private int currentAge;
+
     private int retirementAge;
+
     private double interestRate;
     private String lifestyleType;
-    private double monthlyDeposit;
-    private double futureValue;
+    private BigDecimal monthlyDeposit;
+    private BigDecimal futureValue;
 
     /**
      * Constructs a new RetirementResult.
@@ -49,7 +52,7 @@ public class RetirementResult {
      * @param monthlyDeposit   deposit amount per month
      * @param futureValue      projected total at retirement
      */
-    public RetirementResult(int currentAge, int retirementAge, double interestRate, String lifestyleType, double monthlyDeposit, double futureValue) {
+    public RetirementResult(int currentAge, int retirementAge, double interestRate, String lifestyleType, BigDecimal monthlyDeposit, BigDecimal futureValue) {
         this.currentAge = currentAge;
         this.retirementAge = retirementAge;
         this.interestRate = interestRate;
@@ -57,7 +60,6 @@ public class RetirementResult {
         this.monthlyDeposit = monthlyDeposit;
         this.futureValue = futureValue;
     }
-
 
     public int getCurrentAge() {
         return currentAge;
@@ -91,19 +93,19 @@ public class RetirementResult {
         this.lifestyleType = lifestyleType;
     }
 
-    public double getMonthlyDeposit() {
+    public BigDecimal getMonthlyDeposit() {
         return monthlyDeposit;
     }
 
-    public void setMonthlyDeposit(double monthlyDeposit) {
+    public void setMonthlyDeposit(BigDecimal monthlyDeposit) {
         this.monthlyDeposit = monthlyDeposit;
     }
 
-    public double getFutureValue() {
-        return Math.round(futureValue * 100.0) / 100.0;
+    public BigDecimal getFutureValue() {
+        return futureValue;
     }
 
-
-
-
+    public void setFutureValue(BigDecimal futureValue) {
+        this.futureValue = futureValue;
+    }
 }
