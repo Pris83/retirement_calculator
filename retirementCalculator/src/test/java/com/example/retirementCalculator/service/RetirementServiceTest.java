@@ -1,7 +1,13 @@
 package com.example.retirementCalculator.service;
+
 import com.example.retirementCalculator.entity.Retirement;
 import com.example.retirementCalculator.entity.RetirementResult;
+import com.example.retirementCalculator.exception.CalculationException;
+import com.example.retirementCalculator.exception.InvalidInputException;
+import com.example.retirementCalculator.exception.LifestyleNotFoundException;
+import com.example.retirementCalculator.repository.RetirementRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.data.redis.core.ValueOperations;
@@ -18,31 +24,21 @@ public class RetirementServiceTest {
     private StringRedisTemplate redisTemplate;
     private ValueOperations<String, String> valueOps;
     private RetirementService service;
+    private RetirementRepository repository;
 
     @BeforeEach
     void setUp() {
         redisTemplate = mock(StringRedisTemplate.class);
         valueOps = mock(ValueOperations.class);
+        repository = mock(RetirementRepository.class);
         when(redisTemplate.opsForValue()).thenReturn(valueOps);
 
-        service = new RetirementService(redisTemplate);
-        // Use reflection or constructor if needed
-        setRedisTemplateManually(service, redisTemplate);
-    }
-
-    private void setRedisTemplateManually(RetirementService service, StringRedisTemplate redisTemplate) {
-        // Use reflection to inject if field is private
-        try {
-            var field = RetirementService.class.getDeclaredField("redisTemplate");
-            field.setAccessible(true);
-            field.set(service, redisTemplate);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        service = new RetirementService(redisTemplate,repository);
     }
 
     @Test
-    void testCalculatePlan_success() {
+    @DisplayName("Should successfully calculate retirement plan with valid input")
+    void shouldCalculatePlanForValidInputSuccessfully() {
         // Given
         Retirement input = new Retirement();
         input.setCurrentAge(30);
@@ -63,7 +59,8 @@ public class RetirementServiceTest {
     }
 
     @Test
-    void testCalculatePlan_missingLifestyleInRedis() {
+    @DisplayName("Should throw LifestyleNotFoundException when lifestyle type is missing in Redis")
+    void shouldThrowLifestyleNotFoundExceptionWhenLifestyleIsMissing() {
         // Given
         Retirement input = new Retirement();
         input.setCurrentAge(30);
@@ -75,12 +72,13 @@ public class RetirementServiceTest {
 
         // Then
         assertThatThrownBy(() -> service.calculatePlan(input))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(LifestyleNotFoundException.class)
                 .hasMessageContaining("No deposit amount configured for lifestyle type: unknown");
     }
 
     @Test
-    void testCalculatePlan_zeroInterestRate() {
+    @DisplayName("Should calculate future value correctly when interest rate is zero")
+    void shouldCalculateCorrectFutureValueForZeroInterestRate() {
         // Given
         Retirement input = new Retirement();
         input.setCurrentAge(25);
@@ -94,7 +92,74 @@ public class RetirementServiceTest {
         RetirementResult result = service.calculatePlan(input);
 
         // Then
-        assertThat(result.getFutureValue().setScale(1, RoundingMode.HALF_UP))
-                .isEqualTo(BigDecimal.valueOf(1000.0 * 12 * 10).setScale(1, RoundingMode.HALF_UP));
+        BigDecimal expectedFutureValue = BigDecimal.valueOf(1000.0 * 12 * 10).setScale(1, RoundingMode.HALF_UP);
+        assertThat(result.getFutureValue().setScale(1, RoundingMode.HALF_UP)).isEqualTo(expectedFutureValue);
+    }
+
+    @Test
+    @DisplayName("Should throw InvalidInputException when current age is negative")
+    void shouldThrowInvalidInputExceptionForNegativeCurrentAge() {
+        // Given
+        Retirement input = new Retirement();
+        input.setCurrentAge(-1); // Invalid current age
+        input.setRetirementAge(65);
+        input.setInterestRate(5.0);
+        input.setLifestyleType("fancy");
+
+        // Then
+        assertThatThrownBy(() -> service.calculatePlan(input))
+                .isInstanceOf(InvalidInputException.class)
+                .hasMessageContaining("Invalid input: currentAge - must be non-negative");
+    }
+
+    @Test
+    @DisplayName("Should throw InvalidInputException when retirement age is less than current age")
+    void shouldThrowInvalidInputExceptionForRetirementAgeLessThanCurrentAge() {
+        // Given
+        Retirement input = new Retirement();
+        input.setCurrentAge(30);
+        input.setRetirementAge(25); // Invalid retirement age
+        input.setInterestRate(5.0);
+        input.setLifestyleType("fancy");
+
+        // Then
+        assertThatThrownBy(() -> service.calculatePlan(input))
+                .isInstanceOf(InvalidInputException.class)
+                .hasMessage("Invalid input: retirementAge - must be greater than currentAge");
+    }
+
+    @Test
+    @DisplayName("Should throw InvalidInputException when interest rate is negative")
+    void shouldThrowInvalidInputExceptionForNegativeInterestRate() {
+        // Given
+        Retirement input = new Retirement();
+        input.setCurrentAge(30);
+        input.setRetirementAge(65);
+        input.setInterestRate(-5.0); // Invalid interest rate
+        input.setLifestyleType("fancy");
+
+        // Then
+        assertThatThrownBy(() -> service.calculatePlan(input))
+                .isInstanceOf(InvalidInputException.class)
+                .hasMessageContaining("Invalid input: interestRate - must be non-negative");
+    }
+
+    @Test
+    @DisplayName("Should throw CalculationException when an unexpected error occurs")
+    void shouldThrowCalculationExceptionForUnexpectedError() {
+        // Given
+        Retirement input = new Retirement();
+        input.setCurrentAge(30);
+        input.setRetirementAge(65);
+        input.setInterestRate(5.0);
+        input.setLifestyleType("fancy");
+
+        // Simulate an unexpected error
+        when(valueOps.get("fancy")).thenThrow(new RuntimeException("Unexpected error"));
+
+        // Then
+        assertThatThrownBy(() -> service.calculatePlan(input))
+                .isInstanceOf(CalculationException.class)
+                .hasMessageContaining("Unexpected error during retirement calculation");
     }
 }

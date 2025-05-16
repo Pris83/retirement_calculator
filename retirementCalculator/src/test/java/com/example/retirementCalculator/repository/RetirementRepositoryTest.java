@@ -1,32 +1,28 @@
 package com.example.retirementCalculator.repository;
 
 import com.example.retirementCalculator.entity.LifestyleDeposit;
-import org.aspectj.lang.annotation.After;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
+@Transactional
 public class RetirementRepositoryTest {
 
-    private final RetirementRepository repository;
-
     @Autowired
-    public RetirementRepositoryTest(RetirementRepository repository) {
-        this.repository = repository;
-    }
+    private RetirementRepository repository;
 
     @BeforeEach
     void cleanUp() {
-        repository.deleteAll(); // Avoid leftovers from previous tests
+        repository.deleteAll();
     }
 
     @Test
@@ -65,7 +61,7 @@ public class RetirementRepositoryTest {
 
         // Update value
         saved.setMonthlyDeposit(BigDecimal.valueOf(3500.0));
-        repository.save(saved); // JPA will update based on ID
+        repository.save(saved);
 
         Optional<LifestyleDeposit> updated = repository.findByLifestyleType("fancy");
         assertThat(updated).isPresent();
@@ -77,14 +73,19 @@ public class RetirementRepositoryTest {
     @DisplayName("Should delete LifestyleDeposit")
     void testDeleteLifestyleDeposit() {
         LifestyleDeposit deposit = new LifestyleDeposit();
-        deposit.setLifestyleType("deleteMe");
-        deposit.setMonthlyDeposit(BigDecimal.valueOf(500.0));
+        deposit.setLifestyleType("simple");
+        deposit.setMonthlyDeposit(BigDecimal.valueOf(1000.0));
         LifestyleDeposit saved = repository.save(deposit);
 
         repository.delete(saved);
 
-        Optional<LifestyleDeposit> deleted = repository.findByLifestyleType("deleteMe");
+        Optional<LifestyleDeposit> deleted = repository.findByLifestyleType("simple");
         assertThat(deleted).isNotPresent();
+
+
     }
+
+
+
 
 }

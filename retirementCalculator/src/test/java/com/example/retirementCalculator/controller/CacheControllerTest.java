@@ -11,6 +11,10 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -28,7 +32,7 @@ class CacheControllerTest {
 
     @Test
     void testGetCacheStatusSuccess() throws Exception {
-        Mockito.when(cacheService.getCacheStatus("simple")).thenReturn("Redis is UP | Cache key exists");
+        when(cacheService.getCacheStatus("simple")).thenReturn("Redis is UP | Cache key exists");
 
         mockMvc.perform(get("/cache/status/simple"))
                 .andExpect(status().isOk())
@@ -38,7 +42,7 @@ class CacheControllerTest {
 
     @Test
     void testGetCacheStatusFailure() throws Exception {
-        Mockito.when(cacheService.getCacheStatus("missing")).thenThrow(new RuntimeException("Redis down"));
+        when(cacheService.getCacheStatus("missing")).thenThrow(new RuntimeException("Redis down"));
 
         mockMvc.perform(get("/cache/status/missing"))
                 .andExpect(status().isInternalServerError())
@@ -48,7 +52,7 @@ class CacheControllerTest {
 
     @Test
     void testRefreshCacheSuccess() throws Exception {
-        Mockito.when(cacheService.refreshCache("fancy")).thenReturn("4000");
+        when(cacheService.refreshCache("fancy")).thenReturn("4000");
 
         mockMvc.perform(put("/cache/refresh/fancy"))
                 .andExpect(status().isOk())
@@ -58,7 +62,7 @@ class CacheControllerTest {
 
     @Test
     void testRefreshCacheNoData() throws Exception {
-        Mockito.when(cacheService.refreshCache("unknown")).thenReturn(null);
+        when(cacheService.refreshCache("unknown")).thenReturn(null);
 
         mockMvc.perform(put("/cache/refresh/unknown"))
                 .andExpect(status().isNotFound())
@@ -88,7 +92,7 @@ class CacheControllerTest {
 
     @Test
     void testGetCacheHit() throws Exception {
-        Mockito.when(cacheService.fetchFromCache("simple")).thenReturn("3000");
+        when(cacheService.fetchFromCache("simple")).thenReturn("3000");
 
         mockMvc.perform(get("/cache/get/simple"))
                 .andExpect(status().isOk())
@@ -98,7 +102,7 @@ class CacheControllerTest {
 
     @Test
     void testGetCacheMiss() throws Exception {
-        Mockito.when(cacheService.fetchFromCache("unknown")).thenReturn(null);
+        when(cacheService.fetchFromCache("unknown")).thenReturn(null);
 
         mockMvc.perform(get("/cache/get/unknown"))
                 .andExpect(status().isNotFound());
@@ -111,4 +115,32 @@ class CacheControllerTest {
                 .andExpect(jsonPath("$.status").value("success"))
                 .andExpect(jsonPath("$.message").value("Cache for 'fancy' deleted successfully"));
     }
+
+    @Test
+    void testRefreshAllCache_shouldReturnSuccessResponse() throws Exception {
+        // Given
+        String mockResponse = "Cache refreshed successfully for 3 entries.";
+        when(cacheService.refreshAllCache()).thenReturn(mockResponse);
+
+        // When + Then
+        mockMvc.perform(post("/cache/refreshAll"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("success"))
+                .andExpect(jsonPath("$.message").value("All cache entries have been refreshed."))
+                .andExpect(jsonPath("$.refreshedCache").value(mockResponse));
+    }
+
+    @Test
+    public void testRefreshAllCache_Failure() throws Exception {
+        when(cacheService.refreshAllCache()).thenThrow(new RuntimeException("Redis unavailable"));
+
+        mockMvc.perform(post("/cache/refreshAll"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.message").value("Internal server error"))
+                .andExpect(jsonPath("$.code").value("RC-500"));
+
+        verify(cacheService, times(1)).refreshAllCache();
+    }
+
+
 }

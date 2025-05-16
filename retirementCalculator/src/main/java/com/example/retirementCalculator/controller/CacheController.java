@@ -27,6 +27,19 @@ public class CacheController {
         this.cacheService = cacheService;
     }
 
+    @PostMapping("/refreshAll")
+    public ResponseEntity<Map<String, Object>> refreshAllCache() {
+        String refreshedCache = cacheService.refreshAllCache();
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", "success");
+        response.put("message", "All cache entries have been refreshed.");
+        response.put("refreshedCache", refreshedCache); // Keep as Map, not String
+
+        return ResponseEntity.ok(response);
+    }
+
+
     // Endpoint to get cache status
     @GetMapping("/status/{key}")
     public ResponseEntity<Map<String, String>> getCacheStatus(@PathVariable String key) {

@@ -94,11 +94,13 @@ class RetirementControllerTest {
     @Test
     void calculatePlan_shouldReturnBadRequestForInvalidInput() throws Exception {
         // Missing fields (invalid DTO)
-        Retirement invalidRequest = new Retirement(); // everything null
+        Retirement invalidRequest = new Retirement();
 
         mockMvc.perform(post("/retirement-plans/calculate")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidRequest)))
                 .andExpect(status().isBadRequest());
     }
+
+
 }

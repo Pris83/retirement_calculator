@@ -1,5 +1,9 @@
 package com.example.retirementCalculator.service;
 
+import com.example.retirementCalculator.entity.LifestyleDeposit;
+import com.example.retirementCalculator.exception.CacheUpdateException;
+import com.example.retirementCalculator.exception.RedisCacheAccessException;
+import com.example.retirementCalculator.repository.RetirementRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -12,6 +16,10 @@ import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 
+import java.math.BigDecimal;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -28,6 +36,10 @@ public class CacheServiceTest {
 
     @Mock
     private Cache cache;
+
+    @Mock
+    private RetirementRepository retirementRepository;
+
 
     @InjectMocks
     private CacheService cacheService;
@@ -54,7 +66,6 @@ public class CacheServiceTest {
         assertEquals("Redis is UP | Cache key cacheName does NOT exist | Approximate size: 10", status);
     }
 
-
     @Test
     void testGetCacheStatus_CacheManagerCache() {
         when(redisTemplate.getConnectionFactory()).thenReturn(null);
@@ -75,27 +86,53 @@ public class CacheServiceTest {
         assertEquals("Cache is NOT initialized (no Redis connection or fallback cache).", status);
     }
 
-
     @Test
-    void testRefreshCache_Success() {
-        when(cacheManager.getCache("cacheName")).thenReturn(cache);
+    void refreshCache_shouldRefreshSuccessfully() {
+        // Given
+        String key = "simple";
+        LifestyleDeposit deposit = new LifestyleDeposit();
+        deposit.setLifestyleType("simple");
+        deposit.setMonthlyDeposit(BigDecimal.valueOf(1000.0));
 
-        cacheService.refreshCache("key");
+        when(retirementRepository.findByLifestyleType(key)).thenReturn(Optional.of(deposit));
 
-        verify(cache).evict("key");
-        verify(cache).put("key", "New Value for key");
+        // When
+        String result = cacheService.refreshCache(key);
+
+        // Then
+        String expectedValue = "LifestyleType: simple, Amount: 1000.0";
+        verify(redisTemplate).delete(key);
+        verify(valueOperations).set(key, expectedValue);
+        assertEquals("Cache refreshed for key: simple with value: " + expectedValue, result);
     }
 
-
     @Test
-    void testRefreshCache_NoCache() {
-        when(cacheManager.getCache("cacheName")).thenReturn(null);
+    void refreshCache_shouldReturnErrorIfNotFound() {
+        // Given
+        String key = "nonexistent";
+        when(retirementRepository.findByLifestyleType(key)).thenReturn(Optional.empty());
 
-        String newValue = cacheService.refreshCache("key");
+        // When
+        String result = cacheService.refreshCache(key);
 
-        assertNull(newValue);
+        // Then
+        assertTrue(result.contains("Error refreshing cache for key: nonexistent"));
+        verify(redisTemplate).delete(key); // Still tries to delete
+        verify(valueOperations, never()).set(any(), any()); // Should not attempt to cache
     }
 
+    @Test
+    void refreshCache_shouldHandleRedisExceptionGracefully() {
+        // Given
+        String key = "key";
+        when(redisTemplate.delete(key)).thenThrow(new RuntimeException("Redis down"));
+
+        // When
+        String result = cacheService.refreshCache(key);
+
+        // Then
+        assertTrue(result.contains("Error refreshing cache for key: key - Redis down"));
+    }
 
     @Test
     void testFetchFromCache_Found() {
@@ -131,5 +168,29 @@ public class CacheServiceTest {
         cacheService.deleteFromCache("key");
 
         verify(redisTemplate).delete("key");
+    }
+
+    @Test
+    void testRefreshCache_ThrowsCacheUpdateException() {
+        String key = "test-key";
+
+        doThrow(new CacheUpdateException("Forced failure"))
+                .when(redisTemplate).delete(key);
+
+        CacheUpdateException exception = assertThrows(CacheUpdateException.class, () -> {
+            cacheService.refreshCache(key);
+        });
+
+        assertEquals("Cache update failed", exception.getMessage());
+    }
+
+
+    @Test
+    void testFetchFromCache_ThrowsRedisCacheAccessException() {
+        when(valueOperations.get("key")).thenThrow(new RedisCacheAccessException("Redis connection error"));
+
+        assertThatThrownBy(() -> cacheService.fetchFromCache("key"))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Error fetching data from cache");
     }
 }
