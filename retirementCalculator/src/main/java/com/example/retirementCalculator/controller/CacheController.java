@@ -2,7 +2,6 @@ package com.example.retirementCalculator.controller;
 
 import com.example.retirementCalculator.service.CacheService;
 import com.example.retirementCalculator.service.RetirementService;
-import org.hibernate.engine.internal.CacheHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +12,10 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * REST controller for managing Redis cache operations.
+ * Provides endpoints for setting, getting, refreshing, and deleting cache entries.
+ */
 @RestController
 @RequestMapping("/cache")
 public class CacheController {
@@ -21,12 +24,23 @@ public class CacheController {
     private final RetirementService retirementService;
     private final CacheService cacheService;
 
+    /**
+     * Constructs a new {@code CacheController} with the specified services.
+     *
+     * @param retirementService the retirement service (injected but not used directly here)
+     * @param cacheService      the cache service used to perform cache operations
+     */
     @Autowired
     public CacheController(RetirementService retirementService, CacheService cacheService) {
         this.retirementService = retirementService;
         this.cacheService = cacheService;
     }
 
+    /**
+     * Refreshes all cache entries.
+     *
+     * @return a response entity containing the status and details of the refreshed cache
+     */
     @PostMapping("/refreshAll")
     public ResponseEntity<Map<String, Object>> refreshAllCache() {
         String refreshedCache = cacheService.refreshAllCache();
@@ -34,18 +48,22 @@ public class CacheController {
         Map<String, Object> response = new HashMap<>();
         response.put("status", "success");
         response.put("message", "All cache entries have been refreshed.");
-        response.put("refreshedCache", refreshedCache); // Keep as Map, not String
+        response.put("refreshedCache", refreshedCache);
 
         return ResponseEntity.ok(response);
     }
 
-
-    // Endpoint to get cache status
+    /**
+     * Retrieves the cache status of a specific key.
+     *
+     * @param key the cache key
+     * @return a response entity containing the status and the value associated with the key
+     */
     @GetMapping("/status/{key}")
     public ResponseEntity<Map<String, String>> getCacheStatus(@PathVariable String key) {
         Map<String, String> response = new HashMap<>();
         try {
-            String status = cacheService.getCacheStatus(key);  // Call service method to fetch cache status
+            String status = cacheService.getCacheStatus(key);
             response.put("status", "success");
             response.put("cacheStatus", status);
             return ResponseEntity.ok(response);
@@ -56,7 +74,12 @@ public class CacheController {
         }
     }
 
-    // Endpoint to manually refresh the cache
+    /**
+     * Manually refreshes a specific cache entry.
+     *
+     * @param key the cache key to refresh
+     * @return a response entity with the updated value or error message
+     */
     @PutMapping("/refresh/{key}")
     public ResponseEntity<Map<String, String>> refreshCache(@PathVariable String key) {
         Map<String, String> response = new HashMap<>();
@@ -74,7 +97,6 @@ public class CacheController {
             response.put("key", key.toLowerCase());
             response.put("value", refreshedValue);
             return ResponseEntity.ok(response);
-
         } catch (Exception e) {
             response.put("status", "error");
             response.put("message", "Error refreshing cache: " + e.getMessage());
@@ -82,6 +104,13 @@ public class CacheController {
         }
     }
 
+    /**
+     * Sets a cache entry for the given key and value.
+     *
+     * @param key   the cache key
+     * @param value the value to associate with the key
+     * @return a response entity indicating success or failure
+     */
     @PostMapping("/set")
     public ResponseEntity<Map<String, String>> setCache(
             @RequestParam(required = false) String key,
@@ -119,7 +148,12 @@ public class CacheController {
         }
     }
 
-
+    /**
+     * Retrieves a cache entry by key.
+     *
+     * @param key the cache key
+     * @return a response entity with the cached value or 404 if not found
+     */
     @GetMapping("/get/{key}")
     public ResponseEntity<Map<String, String>> getCache(@PathVariable String key) {
         String value = cacheService.fetchFromCache(key.toLowerCase());
@@ -135,7 +169,12 @@ public class CacheController {
         return ResponseEntity.ok(response);
     }
 
-
+    /**
+     * Deletes a cache entry by key.
+     *
+     * @param key the cache key to delete
+     * @return a response entity indicating success or failure
+     */
     @DeleteMapping("/delete/{key}")
     public ResponseEntity<Map<String, String>> deleteCache(@PathVariable String key) {
         Map<String, String> response = new HashMap<>();

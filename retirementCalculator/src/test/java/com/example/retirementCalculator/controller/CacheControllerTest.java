@@ -4,15 +4,11 @@ import com.example.retirementCalculator.controller.CacheController;
 import com.example.retirementCalculator.service.CacheService;
 import com.example.retirementCalculator.service.RetirementService;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.util.HashMap;
-import java.util.Map;
 
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -71,6 +67,16 @@ class CacheControllerTest {
     }
 
     @Test
+    void testRefreshCacheThrowsException() throws Exception {
+        when(cacheService.refreshCache("fancy")).thenThrow(new RuntimeException("Redis down"));
+
+        mockMvc.perform(put("/cache/refresh/fancy"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.status").value("error"))
+                .andExpect(jsonPath("$.message").value("Error refreshing cache: Redis down"));
+    }
+
+    @Test
     void testSetCacheSuccess() throws Exception {
         mockMvc.perform(post("/cache/set")
                         .param("key", "luxury")
@@ -89,6 +95,28 @@ class CacheControllerTest {
                 .andExpect(jsonPath("$.status").value("error"))
                 .andExpect(jsonPath("$.message").value("Key must not be null or empty"));
     }
+
+    @Test
+    void testSetCacheMissingValue() throws Exception {
+        mockMvc.perform(post("/cache/set")
+                        .param("key", "luxury"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value("error"))
+                .andExpect(jsonPath("$.message").value("Value must not be null or empty"));
+    }
+
+    @Test
+    void testSetCacheServiceThrowsException() throws Exception {
+        doThrow(new RuntimeException("Redis failure")).when(cacheService).updateCache(anyString(), anyString());
+
+        mockMvc.perform(post("/cache/set")
+                        .param("key", "luxury")
+                        .param("value", "5000"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.status").value("error"))
+                .andExpect(jsonPath("$.message").value("Error setting cache: Redis failure"));
+    }
+
 
     @Test
     void testGetCacheHit() throws Exception {
@@ -115,6 +143,30 @@ class CacheControllerTest {
                 .andExpect(jsonPath("$.status").value("success"))
                 .andExpect(jsonPath("$.message").value("Cache for 'fancy' deleted successfully"));
     }
+
+    @Test
+    void testDeleteCacheThrowsException() throws Exception {
+        doThrow(new RuntimeException("Redis failure")).when(cacheService).deleteFromCache("fancy");
+
+        mockMvc.perform(delete("/cache/delete/fancy"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.status").value("error"))
+                .andExpect(jsonPath("$.message").value("Error deleting cache: Redis failure"));
+
+        verify(cacheService, times(1)).deleteFromCache("fancy");
+    }
+
+    @Test
+    void testDeleteCacheKeyIsLowercased() throws Exception {
+        doNothing().when(cacheService).deleteFromCache("somekey");
+
+        mockMvc.perform(delete("/cache/delete/SomeKey"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("success"));
+
+        verify(cacheService).deleteFromCache("somekey");
+    }
+
 
     @Test
     void testRefreshAllCache_shouldReturnSuccessResponse() throws Exception {

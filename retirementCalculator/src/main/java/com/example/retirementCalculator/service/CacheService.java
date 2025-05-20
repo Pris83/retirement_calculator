@@ -12,11 +12,23 @@ import org.springframework.cache.CacheManager;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
+/**
+ * Service to manage caching operations for retirement plan data,
+ * specifically lifestyle deposit values stored in Redis cache.
+ * <p>
+ * Supports querying cache status, refreshing cache entries from database,
+ * updating and deleting cache keys.
+ * </p>
+ * <p>
+ * Uses {@link StringRedisTemplate} to interact with Redis and
+ * {@link RetirementRepository} to fetch persistent lifestyle deposit data.
+ * </p>
+ *
+ * @author Priscilla Masunyane
+ */
 @Service
 public class CacheService {
 
@@ -35,6 +47,16 @@ public class CacheService {
         this.retirementRepository = retirementRepository;
     }
 
+    /**
+     * Checks the status of the cache for the given key.
+     * <p>
+     * If Redis is connected, returns info about whether the key exists and its approximate size.
+     * If Redis is down or unavailable, attempts to report fallback cache status.
+     * </p>
+     *
+     * @param key the cache key to check
+     * @return status string describing the cache state and key presence
+     */
     public String getCacheStatus(String key) {
         try {
             if (redisTemplate.getConnectionFactory() != null) {
@@ -42,7 +64,7 @@ public class CacheService {
                 Boolean isRedisUp = redisTemplate.getConnectionFactory().getConnection().ping() != null;
 
                 if (Boolean.TRUE.equals(isRedisUp)) {
-                    // You can also check size, or existence of key(s)
+                    // Check if key exists and approximate size in Redis
                     Boolean hasKey = redisTemplate.hasKey(key);
                     Long size = redisTemplate.opsForValue().size(key);
 
@@ -69,7 +91,17 @@ public class CacheService {
         }
     }
 
-    // Refresh cache for a specific key
+    /**
+     * Refreshes the cache entry for the given lifestyle type key.
+     * <p>
+     * Deletes the current cache entry and reloads the value from the database.
+     * Stores the new value in Redis as a formatted string.
+     * </p>
+     *
+     * @param key the lifestyle type key for which to refresh the cache
+     * @return message indicating success or error details
+     * @throws CacheUpdateException if cache update fails
+     */
     public String refreshCache(String key) {
         try {
             redisTemplate.delete(key);
@@ -80,35 +112,42 @@ public class CacheService {
             String valueAsString = "LifestyleType: " + freshValueFromDb.getLifestyleType()
                     + ", Amount: " + freshValueFromDb.getMonthlyDeposit();
 
-            // Step 4: Store string value in Redis
+            // Store refreshed value in Redis cache
             redisTemplate.opsForValue().set(key, valueAsString);
             return "Cache refreshed for key: " + key + " with value: " + valueAsString;
-        }catch(CacheUpdateException e){
+        } catch (CacheUpdateException e) {
             throw new CacheUpdateException("Cache update failed");
         } catch (Exception e) {
             return "Error refreshing cache for key: " + key + " - " + e.getMessage();
         }
     }
 
-
+    /**
+     * Refreshes all cache entries related to lifestyle deposits.
+     * <p>
+     * Clears all lifestyle deposit keys from Redis, then fetches all lifestyle deposits
+     * from the database and caches them again.
+     * </p>
+     *
+     * @return message indicating the result of the operation
+     */
     public String refreshAllCache() {
         try {
-            // Step 1: Delete all relevant keys from Redis
-            Set<String> keys = redisTemplate.keys("*"); // You can scope this more tightly with a prefix like "lifestyle:*"
+            // Delete all keys (consider prefixing keys for safer deletion in production)
+            Set<String> keys = redisTemplate.keys("*");
             if (keys != null && !keys.isEmpty()) {
                 redisTemplate.delete(keys);
             }
 
-            // Step 2: Fetch all deposits from the database
+            // Fetch all deposits from DB and recache
             List<LifestyleDeposit> allDeposits = retirementRepository.findAll();
 
             if (allDeposits.isEmpty()) {
                 return "No LifestyleDeposit records found in the database.";
             }
 
-            // Step 3: Re-cache each deposit
             for (LifestyleDeposit deposit : allDeposits) {
-                String key = deposit.getLifestyleType(); // You can add a prefix like "lifestyle:" if needed
+                String key = deposit.getLifestyleType();
                 String valueAsString = "LifestyleType: " + deposit.getLifestyleType()
                         + ", Amount: " + deposit.getMonthlyDeposit();
 
@@ -116,11 +155,20 @@ public class CacheService {
             }
 
             return "Cache successfully refreshed for all LifestyleDeposit entries.";
+        } catch (CacheUpdateException e) {
+            throw new CacheUpdateException("Cache update failed");
         } catch (Exception e) {
             return "Error refreshing all cache entries: " + e.getMessage();
         }
     }
 
+    /**
+     * Fetches cached data for the given key.
+     *
+     * @param key the cache key to fetch
+     * @return cached string data if present; null otherwise
+     * @throws RedisCacheAccessException if cache access fails
+     */
     public String fetchFromCache(String key) {
         try {
             log.info("Fetching data from cache for key: {}", key);
@@ -136,14 +184,19 @@ public class CacheService {
         } catch (RedisCacheAccessException e) {
             log.error("Error accessing Redis cache: {}", e.getMessage());
             throw new RedisCacheAccessException("Error fetching data from cache");
-
         } catch (Exception e) {
             log.error("Unexpected error: {}", e.getMessage());
             return "Unexpected error fetching from cache: " + e.getMessage();
         }
     }
 
-
+    /**
+     * Updates the cache for the given key with the specified value.
+     *
+     * @param key   the cache key to update
+     * @param value the value to set in the cache
+     * @throws RedisCacheUpdateException if cache update fails
+     */
     public void updateCache(String key, String value) {
         try {
             log.info("Updating cache for key: {} with value: {}", key, value);
@@ -157,7 +210,11 @@ public class CacheService {
         }
     }
 
-
+    /**
+     * Deletes the cache entry for the given key.
+     *
+     * @param key the cache key to delete
+     */
     public void deleteFromCache(String key) {
         try {
             log.info("Deleting cache for key: {}", key);
@@ -165,9 +222,9 @@ public class CacheService {
             log.debug("Cache deleted for key: {}", key);
         } catch (RedisCacheDeleteException e) {
             log.error("Error deleting cache for key {}: {}", key, e.getMessage());
+       throw  new RedisCacheDeleteException("Error deleting cache for key" + key);
         } catch (Exception e) {
             log.error("Unexpected error deleting cache for key {}: {}", key, e.getMessage());
         }
     }
-
 }

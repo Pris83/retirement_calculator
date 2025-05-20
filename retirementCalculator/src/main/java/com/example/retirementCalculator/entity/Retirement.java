@@ -4,9 +4,9 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.xml.bind.annotation.*;
 import lombok.*;
 import jakarta.validation.constraints.*;
-import jakarta.validation.constraints.NotNull;
 
 /**
  * Entity representing user-provided retirement plan input.
@@ -25,82 +25,107 @@ import jakarta.validation.constraints.NotNull;
  * {
  *   "currentAge": 30,
  *   "retirementAge": 65,
- *   "interestRate": 5.0
+ *   "interestRate": 5.0,
+ *   "lifestyleType": "simple"
  * }
  * </pre>
  *
- * Note: Lifestyle type may be handled separately depending on design.
- *
  * @author Priscilla Masunyane
  */
-@Entity
+
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Retirement {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+        public class Retirement {
 
+    /**
+     * The user's current age.
+     * Must be 0 or greater.
+     */
     @NotNull(message = "Current age cannot be null")
     @Min(value = 0, message = "Current age must be 0 or older")
+    @XmlElement(name = "currentAge")
     private Integer currentAge;
 
+    /**
+     * The age at which the user plans to retire.
+     * Must be greater than 0.
+     */
     @NotNull(message = "Retirement age cannot be null")
     @Min(value = 1, message = "Retirement age must be greater than 0")
     private Integer retirementAge;
 
+    /**
+     * Expected annual interest rate (as a percentage).
+     * Must be greater than 0.0.
+     */
     @NotNull(message = "Interest rate cannot be null")
-    @DecimalMin(value = "0.0", inclusive = false, message = "Interest rate must be positive")
+    @DecimalMin(value = "0.0", inclusive = true, message = "Interest rate must be non-negative")
     private Double interestRate;
 
+    /**
+     * Type of lifestyle selected by the user, which influences savings strategy.
+     * Allowed values: "simple" or "fancy" (case-insensitive).
+     */
     @NotNull(message = "Lifestyle type cannot be null")
     @Pattern(regexp = "simple|fancy", flags = Pattern.Flag.CASE_INSENSITIVE,
             message = "Lifestyle type must be 'simple' or 'fancy'")
     private String lifestyleType;
 
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public @NotNull(message = "Current age cannot be null") @Min(value = 0, message = "Current age must be 0 or older") Integer getCurrentAge() {
+    /**
+     * Returns the user's current age.
+     */
+    public Integer getCurrentAge() {
         return currentAge;
     }
 
-    public void setCurrentAge(@NotNull(message = "Current age cannot be null") @Min(value = 0, message = "Current age must be 0 or older") Integer currentAge) {
+    /**
+     * Sets the user's current age.
+     */
+    public void setCurrentAge(Integer currentAge) {
         this.currentAge = currentAge;
     }
 
-    public @NotNull(message = "Retirement age cannot be null") @Min(value = 1, message = "Retirement age must be greater than 0") Integer getRetirementAge() {
+    /**
+     * Returns the target retirement age.
+     */
+    public Integer getRetirementAge() {
         return retirementAge;
     }
 
-    public void setRetirementAge(@NotNull(message = "Retirement age cannot be null") @Min(value = 1, message = "Retirement age must be greater than 0") Integer retirementAge) {
+    /**
+     * Sets the target retirement age.
+     */
+    public void setRetirementAge(Integer retirementAge) {
         this.retirementAge = retirementAge;
     }
 
-    public @NotNull(message = "Interest rate cannot be null") @DecimalMin(value = "0.0", inclusive = false, message = "Interest rate must be positive") Double getInterestRate() {
+    /**
+     * Returns the expected annual interest rate.
+     */
+    public Double getInterestRate() {
         return interestRate;
     }
 
-    public void setInterestRate(@NotNull(message = "Interest rate cannot be null") @DecimalMin(value = "0.0", inclusive = false, message = "Interest rate must be positive") Double interestRate) {
+    /**
+     * Sets the expected annual interest rate.
+     */
+    public void setInterestRate(Double interestRate) {
         this.interestRate = interestRate;
     }
 
-    public @NotNull(message = "Lifestyle type cannot be null") @Pattern(regexp = "simple|fancy", flags = Pattern.Flag.CASE_INSENSITIVE,
-            message = "Lifestyle type must be 'simple' or 'fancy'") String getLifestyleType() {
+    /**
+     * Returns the lifestyle type chosen by the user.
+     */
+    public String getLifestyleType() {
         return lifestyleType;
     }
 
-    public void setLifestyleType(@NotNull(message = "Lifestyle type cannot be null") @Pattern(regexp = "simple|fancy", flags = Pattern.Flag.CASE_INSENSITIVE,
-            message = "Lifestyle type must be 'simple' or 'fancy'") String lifestyleType) {
+    /**
+     * Sets the lifestyle type (must be 'simple' or 'fancy').
+     */
+    public void setLifestyleType(String lifestyleType) {
         this.lifestyleType = lifestyleType;
     }
-
 }
-

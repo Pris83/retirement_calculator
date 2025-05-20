@@ -1,7 +1,7 @@
 CREATE SCHEMA IF NOT EXISTS retirement_staging;
 
-CREATE TABLE lifestyle_deposits (
+CREATE TABLE IF NOT EXISTS retirement_staging.lifestyle_deposits (
     id SERIAL PRIMARY KEY,
-    lifestyleType character varying(20)[] NOT NULL,
-    monthlyDeposit numeric(10,2)[] NOT NULL,
+    lifestyle_type VARCHAR(20) NOT NULL,
+    monthly_deposit NUMERIC(10,2) NOT NULL
 );
