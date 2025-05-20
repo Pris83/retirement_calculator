@@ -6,6 +6,8 @@ import io.swagger.v3.oas.models.servers.Server;
 import org.springdoc.core.models.GroupedOpenApi;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.util.List;
 
@@ -18,8 +20,7 @@ public class OpenApiConfig {
                 .info(new Info()
                         .title("Retirement Planner API")
                         .version("1.0")
-                        .description("Calculate and manage retirement savings plans"))
-                .servers(List.of(new Server().url("http://localhost:8080")));
+                        .description("Calculate and manage retirement savings plans"));
     }
 
     @Bean
@@ -28,5 +29,14 @@ public class OpenApiConfig {
                 .group("retirement-plans")
                 .pathsToMatch("/retirement-plans/**")
                 .build();
+    }
+    @Bean
+    public WebMvcConfigurer webMvcConfigurer() {
+        return new WebMvcConfigurer() {
+            @Override
+            public void addViewControllers(ViewControllerRegistry registry) {
+                registry.addRedirectViewController("/swagger-ui.html", "/swagger-ui/index.html");
+            }
+        };
     }
 }

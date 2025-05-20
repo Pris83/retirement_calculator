@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/retirement-plans")
 @Validated
 @Tag(name = "Retirement Plans", description = "APIs for retirement planning calculations")
+@CrossOrigin(origins = "http://localhost:4200")  // allow Angular frontend
 public class RetirementController {
 
     private final RetirementService retirementService;

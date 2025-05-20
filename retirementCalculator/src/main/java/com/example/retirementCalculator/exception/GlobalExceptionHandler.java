@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.validation.ObjectError;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -40,6 +41,18 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleCustomException(RetirementCalculatorException ex) {
         ErrorResponse response = new ErrorResponse(ex.getMessage(), ex.getErrorCode());
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
+    /**
+     * Handles all missing resource exceptions.
+     *
+     * @param ex the no resource found exception thrown
+     * @return ResponseEntity with a generic error message and HTTP 404 Resource not found Error status
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ErrorResponse> handleResourceNotFoundException(NoResourceFoundException ex) {
+        ErrorResponse response = new ErrorResponse("Resource not found", "RC-404");
+        return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
     }
 
     /**

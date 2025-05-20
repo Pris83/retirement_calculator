@@ -1,0 +1,18 @@
+
+<!-- Calculate button, shown only when result is NOT visible -->
+<button *ngIf="!showResult"
+        mat-flat-button
+        class="wide-button"
+        color="primary"
+        (click)="submit()">
+  Calculate
+</button>
+
+<!-- Clear button, shown only when result IS visible -->
+<button *ngIf="showResult"
+        mat-flat-button
+        class="wide-button"
+        color="warn"
+        (click)="clearFields()">
+  Clear
+</button>

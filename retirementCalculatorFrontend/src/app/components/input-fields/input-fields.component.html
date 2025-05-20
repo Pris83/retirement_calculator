@@ -1,0 +1,39 @@
+<form [formGroup]="retirementForm" class="example-form">
+
+  <ng-container *ngFor="let field of formFields">
+
+    <mat-form-field class="example-full-width" *ngIf="field !== 'lifestyleType'">
+      <mat-label>{{ toLabel(field) }}</mat-label>
+      <input
+        [type]="field === 'interestRate' ? 'number' : 'text'"
+        matInput
+        [formControlName]="field"
+        [placeholder]="'Enter ' + toLabel(field)" />
+
+      <mat-error *ngIf="retirementForm.get(field)?.hasError('required')">
+        {{ toLabel(field) }} is <strong>required</strong>
+      </mat-error>
+      <mat-error *ngIf="retirementForm.get(field)?.hasError('min')">
+        {{ toLabel(field) }} must be greater than zero
+      </mat-error>
+      <mat-error *ngIf="field === 'email' && retirementForm.get(field)?.hasError('email')">
+        Please enter a valid email address
+      </mat-error>
+    </mat-form-field>
+
+    <!-- example dropdown for lifestyleType -->
+    <mat-form-field class="example-full-width" *ngIf="field === 'lifestyleType'">
+      <mat-label>Lifestyle Type</mat-label>
+      <mat-select [formControlName]="field" placeholder="Select lifestyle">
+        <mat-option *ngFor="let option of lifestyleOptions" [value]="option.value">
+          {{ option.viewValue }}
+        </mat-option>
+      </mat-select>
+      <mat-error *ngIf="retirementForm.get(field)?.hasError('required')">
+        Lifestyle Type is <strong>required</strong>
+      </mat-error>
+    </mat-form-field>
+
+  </ng-container>
+
+</form>
