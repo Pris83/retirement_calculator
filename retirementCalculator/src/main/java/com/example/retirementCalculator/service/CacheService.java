@@ -7,13 +7,13 @@ import jakarta.persistence.EntityNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Service to manage caching operations for retirement plan data,
@@ -34,15 +34,19 @@ public class CacheService {
 
     private final CacheManager cacheManager;
 
+    @Qualifier("redisTemplateDb0")
     private final StringRedisTemplate redisTemplate;
+    @Qualifier("redisTemplateDb1")
+    private final StringRedisTemplate redisSecondTemplate;
     private static final Logger log = LoggerFactory.getLogger(CacheService.class);
     private final RetirementService retirementService;
     private final RetirementRepository retirementRepository;
 
     @Autowired
-    public CacheService(CacheManager cacheManager, StringRedisTemplate redisTemplate, RetirementService retirementService, RetirementRepository retirementRepository) {
+    public CacheService(CacheManager cacheManager, @Qualifier("stringRedisTemplateDb0") StringRedisTemplate redisTemplate, @Qualifier("stringRedisTemplateDb1") StringRedisTemplate redisSecondTemplate, RetirementService retirementService, RetirementRepository retirementRepository) {
         this.cacheManager = cacheManager;
         this.redisTemplate = redisTemplate;
+        this.redisSecondTemplate = redisSecondTemplate;
         this.retirementService = retirementService;
         this.retirementRepository = retirementRepository;
     }
@@ -90,6 +94,7 @@ public class CacheService {
             return "Error checking cache status: " + e.getMessage();
         }
     }
+
 
     /**
      * Refreshes the cache entry for the given lifestyle type key.
@@ -190,6 +195,39 @@ public class CacheService {
         }
     }
 
+
+    public Map<String, String> fetchAllCache() {
+        try {
+            Set<String> keys = redisTemplate.keys("*");
+            if (keys == null || keys.isEmpty()) {
+                log.warn("No keys found in Redis cache.");
+                return Collections.emptyMap();
+            }
+
+            List<String> depositValues = redisTemplate.opsForValue().multiGet(keys);
+            List<String> interestValues = redisSecondTemplate.opsForValue().multiGet(keys);
+
+            Map<String, String> cacheData = new HashMap<>();
+            int i = 0;
+            for (String key : keys) {
+                String depositValue = depositValues != null ? depositValues.get(i) : null;
+                String interestValue = interestValues != null ? interestValues.get(i) : null;
+
+                cacheData.put(key + ":deposit", depositValue);
+                cacheData.put(key + ":interest", interestValue);
+                i++;
+            }
+
+            log.info("Fetched {} entries from Redis cache.", cacheData.size());
+            return cacheData;
+
+        } catch (Exception e) {
+            log.error("Error fetching all data from Redis cache", e);
+            return Collections.emptyMap();
+        }
+    }
+
+
     /**
      * Updates the cache for the given key with the specified value.
      *
@@ -227,4 +265,6 @@ public class CacheService {
             log.error("Unexpected error deleting cache for key {}: {}", key, e.getMessage());
         }
     }
+
+
 }

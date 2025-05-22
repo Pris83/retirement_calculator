@@ -60,7 +60,6 @@ import jakarta.validation.constraints.*;
      * Expected annual interest rate (as a percentage).
      * Must be greater than 0.0.
      */
-    @NotNull(message = "Interest rate cannot be null")
     @DecimalMin(value = "0.0", inclusive = true, message = "Interest rate must be non-negative")
     private Double interestRate;
 

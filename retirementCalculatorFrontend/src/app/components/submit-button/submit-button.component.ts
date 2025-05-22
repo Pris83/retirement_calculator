@@ -14,6 +14,7 @@ export class SubmitButtonComponent {
   @Output() submitClicked = new EventEmitter<any>();
     @Output() clear = new EventEmitter<void>();
 showResult: boolean = false;
+@Input() disabled: boolean = true;
 
 
   submit() {

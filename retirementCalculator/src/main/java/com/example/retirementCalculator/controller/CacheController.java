@@ -149,6 +149,15 @@ public class CacheController {
     }
 
     /**
+     * GET /cache/all
+     * Returns all key-value pairs stored in Redis cache.
+     */
+    @GetMapping("/all")
+    public Map<String, String> getAllCacheEntries() {
+        return cacheService.fetchAllCache();
+    }
+
+    /**
      * Retrieves a cache entry by key.
      *
      * @param key the cache key
@@ -191,5 +200,6 @@ public class CacheController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
+
 
 }

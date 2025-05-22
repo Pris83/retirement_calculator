@@ -25,6 +25,6 @@ public class InvalidInputException extends RetirementCalculatorException {
      * @param reason the reason why the input is invalid
      */
     public InvalidInputException(String field, String reason) {
-        super("Invalid input: " + field + " - " + reason, "RC-400");
+        super("Invalid Input - " + field + " " + reason, "RC-400");
     }
 }

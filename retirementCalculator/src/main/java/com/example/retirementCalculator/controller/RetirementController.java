@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/retirement-plans")
 @Validated
 @Tag(name = "Retirement Plans", description = "APIs for retirement planning calculations")
-@CrossOrigin(origins = "http://localhost:4200")  // allow Angular frontend
+@CrossOrigin(origins = { "http://localhost:4200", "http://localhost:3000" })
 public class RetirementController {
 
     private final RetirementService retirementService;
@@ -66,9 +66,5 @@ public class RetirementController {
         return ResponseEntity.ok(result);
     }
 
-    @PostMapping("/test")
-    public ResponseEntity<String> calculatePlan(@RequestBody String dummy) {
-        return ResponseEntity.ok("ok");
-    }
 
 }

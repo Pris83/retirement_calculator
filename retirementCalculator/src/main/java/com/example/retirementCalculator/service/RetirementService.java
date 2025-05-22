@@ -9,6 +9,7 @@ import com.example.retirementCalculator.repository.RetirementRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -32,12 +33,15 @@ import java.math.RoundingMode;
 public class RetirementService {
 
     private final StringRedisTemplate redisTemplate;
+    private final StringRedisTemplate redisSecondTemplate;
+
     private static final Logger log = LoggerFactory.getLogger(RetirementService.class);
     private final RetirementRepository retirementRepository;
 
     @Autowired
-    public RetirementService(StringRedisTemplate redisTemplate, RetirementRepository retirementRepository) {
+    public RetirementService(@Qualifier("stringRedisTemplateDb0")StringRedisTemplate redisTemplate, @Qualifier("stringRedisTemplateDb1")StringRedisTemplate redisSecondTemplate, RetirementRepository retirementRepository) {
         this.redisTemplate = redisTemplate;
+        this.redisSecondTemplate = redisSecondTemplate;
         this.retirementRepository = retirementRepository;
     }
 
@@ -60,66 +64,74 @@ public class RetirementService {
         log.info("Starting retirement plan calculation for lifestyle type: {}", dto.getLifestyleType());
 
         // Input validation
-        if (dto.getCurrentAge() < 0) {
-            throw new InvalidInputException("currentAge", "must be non-negative");
+        if (dto.getCurrentAge() < 17) {
+            throw new InvalidInputException("Current Age", "must be greater than 17");
+        }
+        if (dto.getRetirementAge() < 17) {
+            throw new InvalidInputException("Retirement Age", "must be greater than 17");
         }
         if (dto.getRetirementAge() <= dto.getCurrentAge()) {
-            throw new InvalidInputException("retirementAge", "must be greater than currentAge");
-        }
-        if (dto.getInterestRate() < 0.0) {
-            throw new InvalidInputException("interestRate", "must be non-negative");
+            throw new InvalidInputException("Retirement Age", "must be greater than Current Age");
         }
 
         try {
-            String depositStr = redisTemplate.opsForValue().get(dto.getLifestyleType().toLowerCase());
+            String lifestyleKey = dto.getLifestyleType().toLowerCase();
+
+            String depositStr = redisTemplate.opsForValue().get(lifestyleKey); // From DB
+            String interestRateStr = redisSecondTemplate.opsForValue().get(lifestyleKey); // From CSV
 
             if (depositStr == null) {
                 log.error("No deposit amount found in Redis for lifestyle type: {}", dto.getLifestyleType());
                 throw new LifestyleNotFoundException(dto.getLifestyleType());
             }
 
+
+            if (interestRateStr == null) {
+                log.error("No interest rate found in Redis for lifestyle type: {}", dto.getLifestyleType());
+                throw new LifestyleNotFoundException(dto.getLifestyleType());
+            }
+
             BigDecimal monthlyDeposit = new BigDecimal(depositStr);
-            log.debug("Retrieved monthly deposit from Redis: {}", monthlyDeposit);
+            BigDecimal interestRate;
+            if (dto.getInterestRate() != null){
+                interestRate = BigDecimal.valueOf(dto.getInterestRate());
+            } else {
+                 interestRate = new BigDecimal(interestRateStr);
+            }
+
+            log.debug("Retrieved from Redis — Monthly Deposit: {}, Interest Rate: {}", monthlyDeposit, interestRate);
 
             int months = (dto.getRetirementAge() - dto.getCurrentAge()) * 12;
-            BigDecimal monthlyInterestRate = BigDecimal.valueOf(dto.getInterestRate())
-                    .divide(BigDecimal.valueOf(100 * 12), 10, RoundingMode.HALF_UP);
-
-//            BigDecimal futureValue = BigDecimal.ZERO;
+            BigDecimal monthlyInterestRate = interestRate.divide(BigDecimal.valueOf(100 * 12), 10, RoundingMode.HALF_UP);
 
             BigDecimal futureValue;
 
             if (monthlyInterestRate.compareTo(BigDecimal.ZERO) == 0) {
-                // No interest case
                 futureValue = monthlyDeposit.multiply(BigDecimal.valueOf(months));
             } else {
-                // Compound interest case
                 BigDecimal onePlusRPowerN = (BigDecimal.ONE.add(monthlyInterestRate)).pow(months);
                 futureValue = monthlyDeposit.multiply(onePlusRPowerN.subtract(BigDecimal.ONE))
                         .divide(monthlyInterestRate, 10, RoundingMode.HALF_UP);
             }
 
-
             futureValue = futureValue.setScale(2, RoundingMode.HALF_UP);
             log.info("Calculated future value: {}", futureValue);
 
-            RetirementResult result = new RetirementResult(
+            return new RetirementResult(
                     dto.getCurrentAge(),
                     dto.getRetirementAge(),
-                    dto.getInterestRate(),
+                    interestRate.doubleValue(),  // now using value from Redis
                     dto.getLifestyleType(),
                     monthlyDeposit,
                     futureValue
             );
 
-            log.debug("Retirement result constructed: {}", result);
-            return result;
-
         } catch (LifestyleNotFoundException | InvalidInputException e) {
-            throw e; // Propagate known exceptions
+            throw e;
         } catch (Exception e) {
             log.error("Unexpected error during calculation", e);
             throw new CalculationException("Unexpected error during retirement calculation");
         }
     }
+
 }

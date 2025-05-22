@@ -2,16 +2,20 @@
 <div class="calculator-container">
 
   <h1>Retirement Calculator</h1>
-  <app-input-fields (formValuesChanged)="onFormChange($event)" [resetFormTrigger]="resetFormTrigger"></app-input-fields>
+  <app-input-fields (formValuesChanged)="onFormChange($event)"   (formValid)="onFormValidChange($event)" [resetFormTrigger]="resetFormTrigger"></app-input-fields>
 
-  <app-submit-button [formData]="formData" (submitClicked)="onSubmit($event)" (clear)="onClear()"></app-submit-button>
+  <app-submit-button [formData]="formData" [disabled]="!isFormValid" (submitClicked)="onSubmit(formData)" (clear)="onClear()"></app-submit-button>
 
 
-  <div *ngIf="showResult" class="result-box">
-    <h3>Future Value</h3>
-      <div class="mat-input-element readonly-value">
-        {{ calculatedFutureValue | currency:'R ':'symbol':'1.0-2'}}
-      </div>
-</div>
+  <div class="result-box">
+  <div *ngIf="showResult" >
+    <app-results-table [resultData]="tableData[0]"></app-results-table>
+  </div>
+
+    <div *ngIf="showError" class="error-message">
+      {{ errorMessage }}
+    </div>
+  </div>
+
 </div>
 </div>

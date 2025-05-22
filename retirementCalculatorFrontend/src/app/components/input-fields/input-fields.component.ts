@@ -1,6 +1,6 @@
 import { Component, OnInit,Input, Output, EventEmitter, SimpleChanges  } from '@angular/core';
 import { CommonModule} from '@angular/common';
-import {FormGroup, FormControl, Validators, FormsModule, ReactiveFormsModule} from '@angular/forms';
+import {FormGroup, FormControl, Validators, FormsModule, ReactiveFormsModule, AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
 import {MatInputModule} from '@angular/material/input';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatSelectModule} from '@angular/material/select';
@@ -15,6 +15,7 @@ export class InputFieldsComponent implements OnInit{
 
   @Output() formValuesChanged = new EventEmitter<any>();
   @Input() resetFormTrigger: boolean = false;
+@Output() formValid = new EventEmitter<boolean>();
 
   formFields = ['currentAge', 'retirementAge', 'interestRate', 'lifestyleType'];
 
@@ -25,26 +26,63 @@ export class InputFieldsComponent implements OnInit{
 
   retirementForm!: FormGroup;
 
-  ngOnInit(): void {
-    const group: any = {};
 
-    this.formFields.forEach(field => {
-      if (field === 'lifestyleType') {
-        group[field] = new FormControl('', Validators.required);
-      } else {
-        group[field] = new FormControl('', [
+    ngOnInit() {
+      this.retirementForm = new FormGroup({
+        currentAge: new FormControl('', [
           Validators.required,
-          Validators.min(1)
-        ]);
-      }
-    });
+          Validators.min(17),
+          Validators.max(120),
+          Validators.pattern(/^\d+$/)
+        ]),
+        retirementAge: new FormControl('', [
+          Validators.required,
+          Validators.min(17),
+          Validators.max(100),
+          Validators.pattern(/^\d+$/),
+          this.retirementAgeValidator()
+        ]),
+        interestRate: new FormControl('', [
+          Validators.min(0),
+          Validators.max(100),
+          Validators.pattern(/^\d+(\.\d{1,2})?$/)
+        ]),
+        lifestyleType: new FormControl('', Validators.required)
+      });
 
-    this.retirementForm = new FormGroup(group);
+      // Re-validate retirementAge when currentAge changes
+      this.retirementForm.get('currentAge')?.valueChanges.subscribe(() => {
+        this.retirementForm.get('retirementAge')?.updateValueAndValidity();
+      });
 
-    this.retirementForm.valueChanges.subscribe(val => {
-          this.formValuesChanged.emit(val);
-        });
-  }
+      this.retirementForm.valueChanges.subscribe(val => {
+        this.formValuesChanged.emit(val);
+        console.log("val", val);
+        if(val != null){
+        this.formValid.emit(this.retirementForm.valid);
+        console.log(this.retirementForm.valid)
+        }
+      });
+    }
+
+
+
+retirementAgeValidator(): ValidatorFn {
+  return (control: AbstractControl): ValidationErrors | null => {
+    const retirementAge = control.value;
+    const formGroup = control.parent;
+
+    if (!formGroup) return null;
+
+    const currentAge = formGroup.get('currentAge')?.value;
+
+    if (retirementAge && currentAge && retirementAge <= currentAge) {
+      return { retirementAgeInvalid: true };
+    }
+
+    return null;
+  };
+}
 
 ngOnChanges(changes: SimpleChanges) {
   if (
@@ -55,6 +93,7 @@ ngOnChanges(changes: SimpleChanges) {
     this.retirementForm.reset();
   }
 }
+
 
   toLabel(field: string): string {
     return field

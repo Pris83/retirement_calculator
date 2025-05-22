@@ -2,6 +2,7 @@
 <!-- Calculate button, shown only when result is NOT visible -->
 <button *ngIf="!showResult"
         mat-flat-button
+        [disabled]="disabled"
         class="wide-button"
         color="primary"
         (click)="submit()">

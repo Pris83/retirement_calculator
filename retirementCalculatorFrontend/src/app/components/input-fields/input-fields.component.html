@@ -1,28 +1,36 @@
-<form [formGroup]="retirementForm" class="example-form">
+<form [formGroup]="retirementForm" class="form">
 
   <ng-container *ngFor="let field of formFields">
 
-    <mat-form-field class="example-full-width" *ngIf="field !== 'lifestyleType'">
+    <mat-form-field class="full-width" *ngIf="field !== 'lifestyleType'">
       <mat-label>{{ toLabel(field) }}</mat-label>
       <input
         [type]="field === 'interestRate' ? 'number' : 'text'"
         matInput
         [formControlName]="field"
-        [placeholder]="'Enter ' + toLabel(field)" />
+        [placeholder]="field === 'interestRate' ? 'Leave blank for default interest rate' : ('Enter ' + toLabel(field))" />
 
       <mat-error *ngIf="retirementForm.get(field)?.hasError('required')">
         {{ toLabel(field) }} is <strong>required</strong>
       </mat-error>
       <mat-error *ngIf="retirementForm.get(field)?.hasError('min')">
-        {{ toLabel(field) }} must be greater than zero
+        {{ toLabel(field) }} must be greater than 17
       </mat-error>
-      <mat-error *ngIf="field === 'email' && retirementForm.get(field)?.hasError('email')">
-        Please enter a valid email address
+      <mat-error *ngIf="retirementForm.get(field)?.hasError('max')">
+        {{ toLabel(field) }} must be less than 100
       </mat-error>
+      <mat-error *ngIf="retirementForm.get(field)?.hasError('pattern')">
+        {{ toLabel(field) }} must be a whole number
+      </mat-error>
+      <mat-error *ngIf="retirementForm.get('retirementAge')?.hasError('retirementAgeInvalid')">
+        Retirement age must be greater than current age.
+      </mat-error>
+
+
     </mat-form-field>
 
     <!-- example dropdown for lifestyleType -->
-    <mat-form-field class="example-full-width" *ngIf="field === 'lifestyleType'">
+    <mat-form-field class="full-width" *ngIf="field === 'lifestyleType'">
       <mat-label>Lifestyle Type</mat-label>
       <mat-select [formControlName]="field" placeholder="Select lifestyle">
         <mat-option *ngFor="let option of lifestyleOptions" [value]="option.value">

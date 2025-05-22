@@ -1,0 +1,20 @@
+.result-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  td {
+    padding: 8px 16px;
+    border: 3px solid white;
+    vertical-align: top;
+  }
+
+  td:first-child {
+    font-weight: bold;
+    width: 40%;
+    background-color: #f4f4f4;
+  }
+
+  td:last-child {
+    text-align: right;
+  }
+}

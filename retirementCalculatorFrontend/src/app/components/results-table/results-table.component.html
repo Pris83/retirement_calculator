@@ -1,0 +1,19 @@
+<table class="result-table">
+  <tr>
+    <td>Monthly Deposit </td>
+    <td><strong>{{ resultData?.monthlyDeposit | currency:'R':'symbol' }}</strong></td>
+  </tr>
+  <tr>
+    <td>Future Value </td>
+    <td><strong>{{ resultData?.futureValue | currency:'R':'symbol' }}</strong></td>
+  </tr>
+  <tr>
+    <td>Interest Rate </td>
+    <td>{{ resultData?.interestRate }}%</td>
+  </tr>
+  <tr>
+    <td>Lifestyle Type</td>
+    <td>{{ resultData?.lifestyleType | titlecase }}</td>
+  </tr>
+
+</table>

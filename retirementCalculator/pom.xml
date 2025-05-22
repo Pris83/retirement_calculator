@@ -110,6 +110,12 @@
 			<artifactId>jackson-dataformat-xml</artifactId>
 		</dependency>
 
+		<!-- CSV parsing -->
+		<dependency>
+			<groupId>com.opencsv</groupId>
+			<artifactId>opencsv</artifactId>
+			<version>5.7.1</version> <!-- Or latest -->
+		</dependency>
 
 	</dependencies>
 
